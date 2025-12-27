@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}CSV出力・会計ソフト連携{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">CSV出力・会計ソフト連携</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">エクスポート設定</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="export_form">
+                        <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                        
+                        <div class="mb-3">
+                            <label for="format" class="form-label">出力形式 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="format" name="format" required>
+                                <option value="">選択してください</option>
+                                {% for format in formats %}
+                                    <option value="{{ format.id }}">{{ format.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text" id="format_description"></div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_date" class="form-label">開始日</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" 
+                                       value="{{ min_date if min_date else '' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="end_date" class="form-label">終了日</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" 
+                                       value="{{ max_date if max_date else '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirmed_only" name="confirmed_only" value="1">
+                                <label class="form-check-label" for="confirmed_only">
+                                    確認済みの仕訳のみ出力
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary" id="preview_btn">
+                                <i class="bi bi-eye"></i> プレビュー
+                            </button>
+                            <button type="button" class="btn btn-primary" id="download_btn">
+                                <i class="bi bi-download"></i> ダウンロード
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">対応会計ソフト</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for format in formats %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ format.name }}</h6>
+                                        <p class="card-text small text-muted">{{ format.description }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">仕訳統計</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>確認済み仕訳</th>
+                                <td class="text-end">
+                                    <span class="badge bg-success">{{ confirmed_count }}</span> 件
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>未確認仕訳</th>
+                                <td class="text-end">
+                                    <span class="badge bg-warning">{{ unconfirmed_count }}</span> 件
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>合計</th>
+                                <td class="text-end">
+                                    <strong>{{ confirmed_count + unconfirmed_count }}</strong> 件
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    {% if min_date and max_date %}
+                        <hr>
+                        <p class="small text-muted mb-0">
+                            <strong>期間:</strong><br>
+                            {{ min_date }} 〜 {{ max_date }}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">使い方</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="small">
+                        <li>出力形式を選択</li>
+                        <li>期間を指定（任意）</li>
+                        <li>確認済みのみ出力するか選択</li>
+                        <li>プレビューで内容を確認</li>
+                        <li>ダウンロードボタンでCSV取得</li>
+                        <li>会計ソフトにインポート</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 形式説明の表示
+    const formatDescriptions = {
+        {% for format in formats %}
+        '{{ format.id }}': '{{ format.description }}',
+        {% endfor %}
+    };
+
+    document.getElementById('format').addEventListener('change', function() {
+        const description = formatDescriptions[this.value] || '';
+        document.getElementById('format_description').textContent = description;
+    });
+
+    // プレビューボタン
+    document.getElementById('preview_btn').addEventListener('click', function() {
+        const form = document.getElementById('export_form');
+        const format = document.getElementById('format').value;
+        
+        if (!format) {
+            alert('出力形式を選択してください');
+            return;
+        }
+        
+        form.action = '{{ url_for("export.preview") }}';
+        form.submit();
+    });
+
+    // ダウンロードボタン
+    document.getElementById('download_btn').addEventListener('click', function() {
+        const form = document.getElementById('export_form');
+        const format = document.getElementById('format').value;
+        
+        if (!format) {
+            alert('出力形式を選択してください');
+            return;
+        }
+        
+        form.action = '{{ url_for("export.download") }}';
+        form.submit();
+    });
+</script>
+{% endblock %}

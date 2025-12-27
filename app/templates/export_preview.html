@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}エクスポートプレビュー{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">エクスポートプレビュー - {{ format_name }}</h4>
+            <a href="{{ url_for('export.index') }}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> 戻る
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>プレビュー表示:</strong> 最初の10件のみ表示しています。実際のダウンロードでは全件が出力されます。
+            </div>
+
+            <div class="mb-3">
+                <strong>出力形式:</strong> {{ format_name }}<br>
+                <strong>件数:</strong> {{ journal_count }}件（プレビュー）<br>
+                {% if start_date %}
+                    <strong>開始日:</strong> {{ start_date }}<br>
+                {% endif %}
+                {% if end_date %}
+                    <strong>終了日:</strong> {{ end_date }}<br>
+                {% endif %}
+                <strong>確認済みのみ:</strong> {{ '有効' if confirmed_only else '無効' }}
+            </div>
+
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <table class="table table-sm table-bordered">
+                    <tbody>
+                        {% for line in csv_lines %}
+                            <tr>
+                                {% set cells = line.split(',') %}
+                                {% for cell in cells %}
+                                    {% if loop.first and loop.parent.loop.first %}
+                                        <th>{{ cell.strip('"') }}</th>
+                                    {% else %}
+                                        <td>{{ cell.strip('"') }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4">
+                <form method="POST" action="{{ url_for('export.download') }}">
+                    <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                    <input type="hidden" name="format" value="{{ format_id }}">
+                    <input type="hidden" name="start_date" value="{{ start_date if start_date else '' }}">
+                    <input type="hidden" name="end_date" value="{{ end_date if end_date else '' }}">
+                    <input type="hidden" name="confirmed_only" value="{{ '1' if confirmed_only else '0' }}">
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('export.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 戻る
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-download"></i> ダウンロード
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
