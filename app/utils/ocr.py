@@ -112,6 +112,36 @@ def extract_postal_code(text: str) -> Optional[str]:
     return None
 
 
+def extract_company_name(text: str) -> Optional[str]:
+    """
+    テキストから会社名を抽出
+    
+    Args:
+        text: 検索対象のテキスト
+    
+    Returns:
+        抽出された会社名
+    """
+    # 会社名のパターン（株式会社、有限会社、合同会社など）
+    patterns = [
+        r'株式会社[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
+        r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+株式会社',
+        r'有限会社[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
+        r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+有限会社',
+        r'合同会社[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
+        r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+合同会社',
+        r'合資会社[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
+        r'合名会社[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9]+',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            return match.group(0)
+    
+    return None
+
+
 def extract_amount(text: str) -> Optional[float]:
     """
     テキストから金額を抽出
@@ -187,6 +217,7 @@ def process_receipt_image(image_path: str) -> Dict[str, any]:
     # 各種情報を抽出
     result = {
         'raw_text': text,
+        'company_name': extract_company_name(text),
         'phone_numbers': extract_phone_numbers(text),
         'addresses': extract_addresses(text),
         'postal_code': extract_postal_code(text),

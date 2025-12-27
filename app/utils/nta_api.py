@@ -240,6 +240,112 @@ def extract_invoice_number_from_text(text: str) -> Optional[str]:
     return None
 
 
+def search_company_by_ocr_data(company_name: Optional[str] = None, 
+                                address: Optional[str] = None, 
+                                phone_number: Optional[str] = None,
+                                api_id: Optional[str] = None) -> List[Dict]:
+    """
+    OCRで抽出した情報から企業情報を複合検索
+    
+    Args:
+        company_name: 会社名
+        address: 住所
+        phone_number: 電話番号
+        api_id: APIのID
+    
+    Returns:
+        企業情報のリスト（インボイス番号と法人番号を含む）
+    """
+    api = NTAInvoiceAPI(api_id)
+    results = []
+    
+    # 1. 会社名がある場合、会社名で検索
+    if company_name:
+        # 住所から都道府県を抽出
+        prefecture = None
+        if address:
+            prefecture = extract_prefecture_from_address(address)
+        
+        # 会社名 + 都道府県で検索
+        search_results = api.search_by_name(company_name, prefecture)
+        
+        if search_results:
+            # 住所や電話番号でフィルタリング
+            if address:
+                search_results = filter_by_address(search_results, address)
+            
+            results.extend(search_results)
+    
+    # 2. 会社名がない場合、住所から都道府県・市区町村を抽出して検索
+    elif address:
+        prefecture = extract_prefecture_from_address(address)
+        if prefecture:
+            # 都道府県のみで検索（結果が多すぎる可能性あり）
+            # 実際には市区町村も含めて絞り込む必要がある
+            pass
+    
+    return results
+
+
+def extract_prefecture_from_address(address: str) -> Optional[str]:
+    """
+    住所から都道府県を抽出
+    
+    Args:
+        address: 住所
+    
+    Returns:
+        都道府県名
+    """
+    prefectures = [
+        '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
+        '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
+        '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県',
+        '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県',
+        '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県',
+        '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県',
+        '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'
+    ]
+    
+    for prefecture in prefectures:
+        if prefecture in address:
+            return prefecture
+    
+    return None
+
+
+def filter_by_address(companies: List[Dict], target_address: str) -> List[Dict]:
+    """
+    住所の類似度で企業情報をフィルタリング
+    
+    Args:
+        companies: 企業情報のリスト
+        target_address: 対象住所
+    
+    Returns:
+        フィルタリングされた企業情報のリスト
+    """
+    filtered = []
+    
+    for company in companies:
+        company_address = company.get('住所', '')
+        
+        # 簡易的な類似度チェック（市区町村レベル）
+        if company_address:
+            # 都道府県を除いた住所で比較
+            target_parts = target_address.split('県')[-1].split('都')[-1].split('府')[-1].split('道')[-1]
+            company_parts = company_address.split('県')[-1].split('都')[-1].split('府')[-1].split('道')[-1]
+            
+            # 市区町村が一致するかチェック
+            target_city = target_parts.split('市')[0] if '市' in target_parts else target_parts.split('区')[0] if '区' in target_parts else ''
+            company_city = company_parts.split('市')[0] if '市' in company_parts else company_parts.split('区')[0] if '区' in company_parts else ''
+            
+            if target_city and company_city and target_city in company_city:
+                filtered.append(company)
+    
+    return filtered if filtered else companies
+
+
 def search_company_by_phone(phone_number: str, api_id: Optional[str] = None) -> Optional[Dict]:
     """
     電話番号から企業情報を検索（簡易実装）

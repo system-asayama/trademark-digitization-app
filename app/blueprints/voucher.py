@@ -12,6 +12,7 @@ from datetime import datetime
 from ..utils import get_db, _sql
 from ..utils.decorators import require_roles
 from ..utils.ocr import process_receipt_image, save_uploaded_file
+from ..utils.nta_api import search_company_by_ocr_data
 
 bp = Blueprint('voucher', __name__, url_prefix='/voucher')
 
@@ -100,7 +101,88 @@ def upload():
         # OCR処理
         ocr_result = process_receipt_image(filepath)
         
-        # データベースに保存
+        # 電話番号と住所は最初の1件を使用
+        phone = ocr_result['phone_numbers'][0] if ocr_result['phone_numbers'] else None
+        address = ocr_result['addresses'][0] if ocr_result['addresses'] else None
+        company_name = ocr_result.get('company_name')
+        
+        # OCR結果から企業情報を自動検索
+        company_id = None
+        invoice_number = None
+        corporate_number = None
+        
+        if company_name or address or phone:
+            companies = search_company_by_ocr_data(
+                company_name=company_name,
+                address=address,
+                phone_number=phone
+            )
+            
+            if companies:
+                # 最初の候補を使用
+                company_info = companies[0]
+                invoice_number = company_info.get('インボイス登録番号')
+                corporate_number = company_info.get('法人番号')
+                
+                # 企業情報をデータベースに保存（既存の場合は更新）
+                conn = get_db()
+                cur = conn.cursor()
+                
+                # 既存の企業情報をチェック
+                check_sql = _sql(conn, '''
+                    SELECT id FROM "T_企業情報"
+                    WHERE 法人番号 = %s OR インボイス登録番号 = %s
+                ''')
+                cur.execute(check_sql, (corporate_number, invoice_number))
+                existing = cur.fetchone()
+                
+                if existing:
+                    company_id = existing[0] if isinstance(existing, tuple) else existing['id']
+                else:
+                    # 新規企業情報を登録
+                    insert_company_sql = _sql(conn, '''
+                        INSERT INTO "T_企業情報" (
+                            tenant_id,
+                            法人番号,
+                            インボイス登録番号,
+                            会社名,
+                            会社名カナ,
+                            郵便番号,
+                            住所,
+                            都道府県,
+                            市区町村,
+                            番地,
+                            インボイス登録有無,
+                            インボイス登録日,
+                            法人種別
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''')
+                    
+                    cur.execute(insert_company_sql, (
+                        tenant_id,
+                        company_info.get('法人番号'),
+                        company_info.get('インボイス登録番号'),
+                        company_info.get('会社名'),
+                        company_info.get('会社名カナ'),
+                        company_info.get('郵便番号'),
+                        company_info.get('住所'),
+                        company_info.get('都道府県'),
+                        company_info.get('市区町村'),
+                        company_info.get('番地'),
+                        company_info.get('インボイス登録有無', 0),
+                        company_info.get('インボイス登録日'),
+                        company_info.get('法人種別')
+                    ))
+                    
+                    if hasattr(conn, 'commit'):
+                        conn.commit()
+                    
+                    # 挿入されたIDを取得
+                    company_id = cur.lastrowid
+                
+                conn.close()
+        
+        # データベースに証憑情報を保存
         conn = get_db()
         cur = conn.cursor()
         
@@ -108,6 +190,7 @@ def upload():
             INSERT INTO "T_証憑" (
                 tenant_id,
                 uploaded_by,
+                company_id,
                 画像パス,
                 OCR結果_生データ,
                 電話番号,
@@ -115,16 +198,13 @@ def upload():
                 金額,
                 日付,
                 ステータス
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''')
-        
-        # 電話番号と住所は最初の1件を使用
-        phone = ocr_result['phone_numbers'][0] if ocr_result['phone_numbers'] else None
-        address = ocr_result['addresses'][0] if ocr_result['addresses'] else None
         
         cur.execute(sql, (
             tenant_id,
             user_id,
+            company_id,
             filepath,
             ocr_result['raw_text'],
             phone,
