@@ -11,8 +11,10 @@ import re
 class NTAInvoiceAPI:
     """国税庁インボイス登録番号検索APIクライアント"""
     
+    # 国税庁インボイス登録番号公表サイトWeb-API
+    INVOICE_BASE_URL = "https://web-api.invoice-kohyo.nta.go.jp"
     # 国税庁法人番号システムWeb-API
-    BASE_URL = "https://web-api.invoice-kohyo.nta.go.jp"
+    CORPORATE_BASE_URL = "https://api.houjin-bangou.nta.go.jp"
     
     def __init__(self, api_id: Optional[str] = None):
         """
@@ -44,7 +46,7 @@ class NTAInvoiceAPI:
         
         try:
             # 国税庁APIエンドポイント（実際のエンドポイントに合わせて調整）
-            url = f"{self.BASE_URL}/4/num"
+            url = f"{self.INVOICE_BASE_URL}/4/num"
             params = {
                 'id': self.api_id,
                 'number': number,
@@ -84,7 +86,7 @@ class NTAInvoiceAPI:
             return None
         
         try:
-            url = f"{self.BASE_URL}/4/num"
+            url = f"{self.INVOICE_BASE_URL}/4/num"
             params = {
                 'id': self.api_id,
                 'number': number,
@@ -117,7 +119,7 @@ class NTAInvoiceAPI:
             企業情報のリスト
         """
         try:
-            url = f"{self.BASE_URL}/4/name"
+            url = f"{self.INVOICE_BASE_URL}/4/name"
             params = {
                 'id': self.api_id,
                 'name': company_name,

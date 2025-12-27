@@ -13,6 +13,7 @@ from ..utils import get_db, _sql
 from ..utils.decorators import require_roles
 from ..utils.ocr import process_receipt_image, save_uploaded_file
 from ..utils.nta_api import search_company_by_ocr_data
+from ..utils.nta_api_enhanced import enhanced_company_search
 from ..utils.ai_helper import get_ai_settings, correct_ocr_text, normalize_company_name_with_ai, select_best_company_from_candidates
 
 bp = Blueprint('voucher', __name__, url_prefix='/voucher')
@@ -155,23 +156,19 @@ def upload():
             except Exception as e:
                 print(f"AI会社名正規化エラー: {e}")
         
-        # OCR結果から企業情報を自動検索
-        company_id = None
-        invoice_number = None
-        corporate_number = None
+        # 拡張検索フローを使用
+        search_result = enhanced_company_search(ocr_result)
         
-        if company_name or address or phone:
-            companies = search_company_by_ocr_data(
-                company_name=company_name,
-                address=address,
-                phone_number=phone
-            )
-            
-            if companies:
-                # 最初の候補を使用
-                company_info = companies[0]
-                invoice_number = company_info.get('インボイス登録番号')
-                corporate_number = company_info.get('法人番号')
+        company_id = None
+        invoice_number = search_result.get('invoice_number')
+        corporate_number = search_result.get('corporate_number')
+        company_info = search_result.get('company_info')
+        
+        # 検証結果をチェック
+        if not search_result.get('verification_passed'):
+            flash(search_result.get('warning_message'), 'warning')
+        
+        if company_info:
                 
                 # 企業情報をデータベースに保存（既存の場合は更新）
                 conn = get_db()

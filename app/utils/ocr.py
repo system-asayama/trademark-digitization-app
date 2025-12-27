@@ -144,6 +144,56 @@ def extract_addresses(text: str) -> List[str]:
     return addresses
 
 
+def extract_invoice_number(text: str) -> Optional[str]:
+    """
+    テキストからインボイス登録番号を抽出
+    
+    Args:
+        text: 検索対象のテキスト
+    
+    Returns:
+        抽出されたインボイス登録番号（T + 13桁）
+    """
+    # インボイス登録番号パターン（T + 13桁の数字）
+    patterns = [
+        r'T\s*\d{13}',  # T 1234567890123
+        r'T-\d{13}',    # T-1234567890123
+        r'T\d{13}',     # T1234567890123
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text.replace(' ', '').replace('-', ''))
+        if match:
+            # ハイフンとスペースを削除して正規化
+            invoice_number = match.group(0).replace(' ', '').replace('-', '')
+            # T + 13桁の形式に正規化
+            if len(invoice_number) == 14 and invoice_number[0] == 'T':
+                return invoice_number
+    
+    return None
+
+
+def extract_corporate_number(text: str) -> Optional[str]:
+    """
+    テキストから法人番号を抽出
+    
+    Args:
+        text: 検索対象のテキスト
+    
+    Returns:
+        抽出された法人番号（13桁）
+    """
+    # 法人番号パターン（13桁の数字）
+    # インボイス番号（T付き）と区別するため、Tがないことを確認
+    pattern = r'(?<!T)\b\d{13}\b'
+    match = re.search(pattern, text)
+    
+    if match:
+        return match.group(0)
+    
+    return None
+
+
 def extract_postal_code(text: str) -> Optional[str]:
     """
     テキストから郵便番号を抽出
@@ -277,13 +327,16 @@ def process_receipt_image(image_path: str, use_google_vision: bool = True) -> Di
     
     # 各種情報を抽出
     result = {
-        'raw_text': text,
+        'full_text': text,
+        'raw_text': text,  # 後方互換性のため
         'company_name': extract_company_name(text),
         'phone_numbers': extract_phone_numbers(text),
         'addresses': extract_addresses(text),
         'postal_code': extract_postal_code(text),
         'amount': extract_amount(text),
         'date': extract_date(text),
+        'invoice_number': extract_invoice_number(text),  # インボイス番号
+        'corporate_number': extract_corporate_number(text),  # 法人番号
     }
     
     return result
