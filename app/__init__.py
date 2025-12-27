@@ -179,6 +179,12 @@ def create_app() -> Flask:
     except Exception as e:
         print(f"⚠️ journal blueprint 登録エラー: {e}")
 
+    try:
+        from .blueprints.export import bp as export_bp
+        app.register_blueprint(export_bp)
+    except Exception as e:
+        print(f"⚠️ export blueprint 登録エラー: {e}")
+
     # エラーハンドラ
     @app.errorhandler(404)
     def not_found(error):
