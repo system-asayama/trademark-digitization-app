@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}企業情報詳細{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">企業情報詳細</h4>
+            <div>
+                <a href="{{ url_for('company.edit', company_id=company[0] if company is sequence else company.id) }}" class="btn btn-warning btn-sm">
+                    <i class="bi bi-pencil"></i> 編集
+                </a>
+                <form method="POST" action="{{ url_for('company.delete', company_id=company[0] if company is sequence else company.id) }}" style="display: inline;" onsubmit="return confirm('本当に削除しますか?');">
+                    <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash"></i> 削除
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <th width="30%">ID</th>
+                        <td>{{ company[0] if company is sequence else company.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>会社名</th>
+                        <td>{{ company[4] if company is sequence else company.会社名 }}</td>
+                    </tr>
+                    <tr>
+                        <th>会社名カナ</th>
+                        <td>{{ company[5] if company is sequence else company.会社名カナ }}</td>
+                    </tr>
+                    <tr>
+                        <th>法人番号</th>
+                        <td>{{ company[2] if company is sequence else company.法人番号 }}</td>
+                    </tr>
+                    <tr>
+                        <th>インボイス登録番号</th>
+                        <td>
+                            {% set invoice_number = company[3] if company is sequence else company.インボイス登録番号 %}
+                            {% if invoice_number %}
+                                <span class="badge bg-success">{{ invoice_number }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">未登録</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>インボイス登録有無</th>
+                        <td>
+                            {% set has_invoice = company[10] if company is sequence else company.インボイス登録有無 %}
+                            {% if has_invoice %}
+                                <span class="badge bg-success">登録済</span>
+                            {% else %}
+                                <span class="badge bg-secondary">未登録</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>インボイス登録日</th>
+                        <td>{{ company[11] if company is sequence else company.インボイス登録日 }}</td>
+                    </tr>
+                    <tr>
+                        <th>郵便番号</th>
+                        <td>{{ company[6] if company is sequence else company.郵便番号 }}</td>
+                    </tr>
+                    <tr>
+                        <th>住所</th>
+                        <td>{{ company[7] if company is sequence else company.住所 }}</td>
+                    </tr>
+                    <tr>
+                        <th>電話番号</th>
+                        <td>{{ company[8] if company is sequence else company.電話番号 }}</td>
+                    </tr>
+                    <tr>
+                        <th>事業概要</th>
+                        <td>
+                            {% set description = company[9] if company is sequence else company.事業概要 %}
+                            {% if description %}
+                                {{ description }}
+                            {% else %}
+                                <span class="text-muted">未設定</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>登録日時</th>
+                        <td>{{ company[13] if company is sequence else company.created_at }}</td>
+                    </tr>
+                    <tr>
+                        <th>最終更新日時</th>
+                        <td>{{ company[12] if company is sequence else company.最終更新日 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mt-4">
+                <a href="{{ url_for('company.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> 一覧に戻る
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

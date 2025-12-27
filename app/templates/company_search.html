@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}企業情報検索{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">企業検索</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                        
+                        <div class="mb-3">
+                            <label for="search_type" class="form-label">検索方法</label>
+                            <select class="form-select" id="search_type" name="search_type" required>
+                                <option value="invoice_number">インボイス登録番号</option>
+                                <option value="corporate_number">法人番号</option>
+                                <option value="company_name">会社名</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="search_value" class="form-label">検索キーワード</label>
+                            <input type="text" class="form-control" id="search_value" name="search_value" 
+                                   value="{{ search_value if search_value else '' }}" required
+                                   placeholder="例: T1234567890123">
+                            <div class="form-text">
+                                <small>
+                                    <strong>インボイス登録番号:</strong> T + 13桁の数字<br>
+                                    <strong>法人番号:</strong> 13桁の数字<br>
+                                    <strong>会社名:</strong> 部分一致で検索
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('company.index') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> 戻る
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> 検索
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">検索のヒント</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="small">
+                        <li>インボイス登録番号は国税庁の適格請求書発行事業者公表サイトで確認できます</li>
+                        <li>法人番号は国税庁の法人番号公表サイトで確認できます</li>
+                        <li>会社名検索は部分一致で複数件ヒットする場合があります</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            {% if results %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">検索結果 ({{ results|length }}件)</h4>
+                    </div>
+                    <div class="card-body">
+                        {% for result in results %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ result['会社名'] }}</h5>
+                                    <p class="card-text">
+                                        <strong>会社名カナ:</strong> {{ result['会社名カナ'] or '-' }}<br>
+                                        <strong>法人番号:</strong> {{ result['法人番号'] or '-' }}<br>
+                                        <strong>インボイス登録番号:</strong> 
+                                        {% if result['インボイス登録番号'] %}
+                                            <span class="badge bg-success">{{ result['インボイス登録番号'] }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">未登録</span>
+                                        {% endif %}
+                                        <br>
+                                        <strong>郵便番号:</strong> {{ result['郵便番号'] or '-' }}<br>
+                                        <strong>住所:</strong> {{ result['住所'] or '-' }}<br>
+                                        {% if result['インボイス登録日'] %}
+                                            <strong>インボイス登録日:</strong> {{ result['インボイス登録日'] }}<br>
+                                        {% endif %}
+                                    </p>
+                                    
+                                    <form method="POST" action="{{ url_for('company.register') }}">
+                                        <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                                        <input type="hidden" name="corporate_number" value="{{ result['法人番号'] }}">
+                                        <input type="hidden" name="invoice_number" value="{{ result['インボイス登録番号'] }}">
+                                        <input type="hidden" name="company_name" value="{{ result['会社名'] }}">
+                                        <input type="hidden" name="company_name_kana" value="{{ result['会社名カナ'] }}">
+                                        <input type="hidden" name="postal_code" value="{{ result['郵便番号'] }}">
+                                        <input type="hidden" name="address" value="{{ result['住所'] }}">
+                                        <input type="hidden" name="registration_date" value="{{ result['インボイス登録日'] }}">
+                                        
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="bi bi-plus-circle"></i> この企業を登録
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% elif search_value %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 検索結果がありません
+                </div>
+            {% else %}
+                <div class="alert alert-secondary">
+                    <i class="bi bi-search"></i> 検索キーワードを入力して検索してください
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

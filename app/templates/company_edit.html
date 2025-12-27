@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}企業情報編集{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">企業情報編集</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ get_csrf() }}">
+                        
+                        <div class="mb-3">
+                            <label for="company_name" class="form-label">会社名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="company_name" name="company_name" 
+                                   value="{{ company[4] if company is sequence else company.会社名 }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="company_name_kana" class="form-label">会社名カナ</label>
+                            <input type="text" class="form-control" id="company_name_kana" name="company_name_kana" 
+                                   value="{{ company[5] if company is sequence else company.会社名カナ }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="postal_code" class="form-label">郵便番号</label>
+                            <input type="text" class="form-control" id="postal_code" name="postal_code" 
+                                   value="{{ company[6] if company is sequence else company.郵便番号 }}"
+                                   placeholder="123-4567">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">住所</label>
+                            <textarea class="form-control" id="address" name="address" rows="3">{{ company[7] if company is sequence else company.住所 }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">電話番号</label>
+                            <input type="text" class="form-control" id="phone" name="phone" 
+                                   value="{{ company[8] if company is sequence else company.電話番号 }}"
+                                   placeholder="03-1234-5678">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="business_description" class="form-label">事業概要</label>
+                            <textarea class="form-control" id="business_description" name="business_description" rows="4">{{ company[9] if company is sequence else company.事業概要 }}</textarea>
+                            <div class="form-text">
+                                企業の主な事業内容を記載してください
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>参考情報</strong><br>
+                            <strong>法人番号:</strong> {{ company[2] if company is sequence else company.法人番号 }}<br>
+                            <strong>インボイス登録番号:</strong> {{ company[3] if company is sequence else company.インボイス登録番号 }}<br>
+                            <small class="text-muted">※ 法人番号とインボイス登録番号は編集できません</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('company.detail', company_id=company[0] if company is sequence else company.id) }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> 戻る
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> 保存
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

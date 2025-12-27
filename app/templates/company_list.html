@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}企業情報一覧{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>企業情報一覧</h2>
+        <a href="{{ url_for('company.search') }}" class="btn btn-primary">
+            <i class="bi bi-search"></i> 企業検索
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>会社名</th>
+                            <th>会社名カナ</th>
+                            <th>郵便番号</th>
+                            <th>住所</th>
+                            <th>電話番号</th>
+                            <th>インボイス登録</th>
+                            <th>登録日時</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if companies %}
+                            {% for company in companies %}
+                                <tr>
+                                    <td>{{ company[0] if company is sequence else company.id }}</td>
+                                    <td>{{ company[1] if company is sequence else company.会社名 }}</td>
+                                    <td>{{ company[2] if company is sequence else company.会社名カナ }}</td>
+                                    <td>{{ company[3] if company is sequence else company.郵便番号 }}</td>
+                                    <td>
+                                        {% set address = company[4] if company is sequence else company.住所 %}
+                                        {% if address %}
+                                            {{ address[:30] }}{% if address|length > 30 %}...{% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ company[5] if company is sequence else company.電話番号 }}</td>
+                                    <td>
+                                        {% set has_invoice = company[7] if company is sequence else company.インボイス登録有無 %}
+                                        {% if has_invoice %}
+                                            <span class="badge bg-success">登録済</span>
+                                            <br>
+                                            <small>{{ company[6] if company is sequence else company.インボイス登録番号 }}</small>
+                                        {% else %}
+                                            <span class="badge bg-secondary">未登録</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ company[8] if company is sequence else company.created_at }}</td>
+                                    <td>
+                                        {% set company_id = company[0] if company is sequence else company.id %}
+                                        <a href="{{ url_for('company.detail', company_id=company_id) }}" class="btn btn-sm btn-info">詳細</a>
+                                        <a href="{{ url_for('company.edit', company_id=company_id) }}" class="btn btn-sm btn-warning">編集</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">企業情報がありません</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
