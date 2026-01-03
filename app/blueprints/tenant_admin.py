@@ -1897,7 +1897,21 @@ def employee_new():
 # 利用可能なアプリ一覧（現在は空）
 # 将来的にアプリを追加する場合は、以下の形式で追加してください：
 # {'name': 'app-name', 'display_name': 'アプリ表示名', 'scope': 'store'/'tenant'}
-AVAILABLE_APPS = []
+AVAILABLE_APPS = [
+    {
+        'id': 'voucher_digitization',
+        'name': '証憑データ化システム',
+        'description': 'OCRで証憑をデータ化し、企業情報検索と仕訳生成を行うシステム',
+        'scope': 'tenant',  # tenantレベルのアプリ
+        'icon': '📝',
+        'routes': [
+            {'path': '/voucher', 'name': '証憑管理'},
+            {'path': '/company', 'name': '企業情報検索'},
+            {'path': '/journal', 'name': '仕訳生成'},
+            {'path': '/export', 'name': 'エクスポート'}
+        ]
+    }
+]
 
 
 @bp.route('/app_management', methods=['GET', 'POST'])
@@ -2166,10 +2180,10 @@ def tenant_apps():
                 app_setting = db.query(TTenantAppSetting).filter(
                     and_(
                         TTenantAppSetting.tenant_id == tenant_id,
-                        TTenantAppSetting.app_name == app['name']
+                        TTenantAppSetting.app_id == app['id']
                     )
                 ).first()
-                enabled = app_setting.enabled if app_setting else 1
+                enabled = app_setting.enabled if app_setting else 0
                 
                 if enabled:
                     enabled_apps.append(app)
