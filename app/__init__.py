@@ -191,6 +191,31 @@ def create_app() -> Flask:
     except Exception as e:
         print(f"⚠️ migrate blueprint 登録エラー: {e}")
 
+    # 証憑データ化システムblueprints
+    try:
+        from .blueprints.voucher import bp as voucher_bp
+        app.register_blueprint(voucher_bp)
+    except Exception as e:
+        print(f"⚠️ voucher blueprint 登録エラー: {e}")
+
+    try:
+        from .blueprints.company import bp as company_bp
+        app.register_blueprint(company_bp)
+    except Exception as e:
+        print(f"⚠️ company blueprint 登録エラー: {e}")
+
+    try:
+        from .blueprints.journal import bp as journal_bp
+        app.register_blueprint(journal_bp)
+    except Exception as e:
+        print(f"⚠️ journal blueprint 登録エラー: {e}")
+
+    try:
+        from .blueprints.export import bp as export_bp
+        app.register_blueprint(export_bp)
+    except Exception as e:
+        print(f"⚠️ export blueprint 登録エラー: {e}")
+
     # エラーハンドラ
     @app.errorhandler(404)
     def not_found(error):
