@@ -2,6 +2,17 @@ from __future__ import annotations
 import os
 from flask import Flask
 
+# データベーステーブル作成（モジュールレベルで1回だけ実行）
+try:
+    from .db import Base, engine
+    # モデルをインポートしてBaseに登録
+    from . import models_login  # noqa: F401
+    from . import models_auth  # noqa: F401
+    Base.metadata.create_all(bind=engine)
+    print("✅ データベーステーブル作成完了")
+except Exception as e:
+    print(f"⚠️ データベーステーブル作成エラー: {e}")
+
 def create_app() -> Flask:
     """
     Flaskアプリケーションを生成して返します。
@@ -60,15 +71,19 @@ def create_app() -> Flask:
         
         # ロールに応じたマイページURLを設定
         role = session.get('role')
-        if role == 'system_admin':
-            context['mypage_url'] = url_for('system_admin.mypage')
-        elif role == 'tenant_admin':
-            context['mypage_url'] = url_for('tenant_admin.mypage')
-        elif role == 'admin':
-            context['mypage_url'] = url_for('admin.mypage')
-        elif role == 'employee':
-            context['mypage_url'] = url_for('employee.mypage')
-        else:
+        try:
+            if role == 'system_admin':
+                context['mypage_url'] = url_for('system_admin.mypage')
+            elif role == 'tenant_admin':
+                context['mypage_url'] = url_for('tenant_admin.mypage')
+            elif role == 'admin':
+                context['mypage_url'] = url_for('admin.mypage')
+            elif role == 'employee':
+                context['mypage_url'] = url_for('employee.mypage')
+            else:
+                context['mypage_url'] = url_for('auth.index')
+        except Exception:
+            # ブループリントが登録されていない場合はデフォルトのURLを使用
             context['mypage_url'] = url_for('auth.index')
         
         # テナント情報を取得
@@ -113,7 +128,7 @@ def create_app() -> Flask:
 
     # データベース初期化
     try:
-        from .utils import get_db
+        from .utils.db import get_db
         conn = get_db()
         try:
             conn.close()
@@ -122,6 +137,15 @@ def create_app() -> Flask:
         print("✅ データベース初期化完了")
     except Exception as e:
         print(f"⚠️ データベース初期化エラー: {e}")
+    
+    
+    # データベースマイグレーション実行
+    try:
+        from .migrations import run_migrations
+        run_migrations()
+        print("✅ データベースマイグレーション完了")
+    except Exception as e:
+        print(f"⚠️ データベースマイグレーションエラー: {e}")
 
     # blueprints 登録
     try:
@@ -162,28 +186,10 @@ def create_app() -> Flask:
         print(f"⚠️ employee blueprint 登録エラー: {e}")
 
     try:
-        from .blueprints.voucher import bp as voucher_bp
-        app.register_blueprint(voucher_bp)
+        from .blueprints.migrate import bp as migrate_bp
+        app.register_blueprint(migrate_bp)
     except Exception as e:
-        print(f"⚠️ voucher blueprint 登録エラー: {e}")
-
-    try:
-        from .blueprints.company import bp as company_bp
-        app.register_blueprint(company_bp)
-    except Exception as e:
-        print(f"⚠️ company blueprint 登録エラー: {e}")
-
-    try:
-        from .blueprints.journal import bp as journal_bp
-        app.register_blueprint(journal_bp)
-    except Exception as e:
-        print(f"⚠️ journal blueprint 登録エラー: {e}")
-
-    try:
-        from .blueprints.export import bp as export_bp
-        app.register_blueprint(export_bp)
-    except Exception as e:
-        print(f"⚠️ export blueprint 登録エラー: {e}")
+        print(f"⚠️ migrate blueprint 登録エラー: {e}")
 
     # エラーハンドラ
     @app.errorhandler(404)
