@@ -10,6 +10,19 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 bp = Blueprint('tenant_admin', __name__, url_prefix='/tenant_admin')
 
+# 利用可能なアプリケーションの定義
+AVAILABLE_APPS = [
+    {
+        'name': 'voucher',
+        'display_name': '証憑データ化',
+        'description': '証憑をOCRで読み取り、仕訳データを生成します。',
+        'scope': 'tenant',
+        'url': 'voucher.index',
+        'icon': 'fas fa-receipt',
+        'color': 'bg-primary'
+    }
+]
+
 
 @bp.route('/')
 @require_roles(ROLES["TENANT_ADMIN"], ROLES["SYSTEM_ADMIN"])
