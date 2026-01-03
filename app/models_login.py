@@ -104,7 +104,7 @@ class TTenantAppSetting(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, ForeignKey('T_テナント.id'), nullable=False)
-    app_name = Column(String(255), nullable=False)
+    app_id = Column(String(255), nullable=False)
     enabled = Column(Integer, default=1)
     created_at = Column(DateTime, server_default=func.now())
 
@@ -115,7 +115,7 @@ class TTenpoAppSetting(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     store_id = Column(Integer, ForeignKey('T_店舗.id'), nullable=False)
-    app_name = Column(String(255), nullable=False)
+    app_id = Column(String(255), nullable=False)
     enabled = Column(Integer, default=1)
     created_at = Column(DateTime, server_default=func.now())
 
